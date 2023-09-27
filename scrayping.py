@@ -3,6 +3,8 @@ from bs4 import  BeautifulSoup
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException
 import time
@@ -12,6 +14,10 @@ import sys
 options = Options()
 options.add_argument('--headless')
 options.add_argument('--disable-extensions')
+
+## Set member
+member_name_ja = "岩本 蓮加"
+member_name_en = "Renka Iwamoto"
 
 # URL
 nogizaka_member_url = "https://www.nogizaka46.com/s/n46/search/artist?ima=0123"
@@ -41,25 +47,30 @@ nogi_homepage_soup = BeautifulSoup(nogi_driver.page_source, 'html.parser')
 nogi_member_elems = nogi_homepage_soup.select(member_profile_cssselector)
 for i in nogi_member_elems[:-1]:
     mem_name = i.find('p', class_="m--mem__name").get_text()
+    mem_name_kn = i.find('p', class_="m--mem__kn").get_text()
     link = i.find('a')
-    member_link_dict[mem_name] = link.get('href')
+    member_link_dict[mem_name] = {"link": link.get('href'), "name_kn": mem_name_kn} 
 
 print(member_link_dict.keys())
+
+print(member_link_dict[member_name_en])
 # Calendar
 
-## Set member
-member_name = "岩本 蓮加"
-try:
-    member_url = member_link_dict[member_name]
-except KeyError:
+if (member_name_en in member_link_dict.keys()):
+    member_url = member_link_dict[member_name_en]["link"]
+    member_name = member_link_dict[member_name_en]["name_kn"]
+else:
     print("No member")
     sys.exit(1)
-    
+
     
 ## webdriver
 driver_mem = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
+driver_mem.implicitly_wait(10)
+driver_mem.set_window_size('1200', '1000')
 driver_mem.get(member_url)
-
+element = driver_mem.find_element_by_xpath("/html/body/div[1]/div[3]/div[1]/div[2]/div/p[1]")
+element.click()
 ## wait
 time.sleep(3)
 
@@ -79,6 +90,8 @@ for i in member_article_soup.select(calendar_selector):
         category = content.find('p', class_="m--scone__cat__name")
         time_duration = content.find('p', class_="m--scone__start")
         title = content.find('p', class_="m--scone__ttl") 
+        url = content.find('a', class_="m--scone__a").get("href")
+
         
         article ={}
         if (category is not None):
@@ -87,7 +100,8 @@ for i in member_article_soup.select(calendar_selector):
             article["duration"] = time_duration.text
         if (title is not None):
             article["title"] = title.text
-                
+        if (url is not None):
+            article["url"] = url
         
         content_list.append(article)
 
