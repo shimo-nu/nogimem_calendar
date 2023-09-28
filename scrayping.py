@@ -14,6 +14,7 @@ import sys
 options = Options()
 options.add_argument('--headless')
 options.add_argument('--disable-extensions')
+options.add_argument('--lang=ja-JP')
 
 ## Set member
 member_name_ja = "岩本 蓮加"
@@ -53,24 +54,29 @@ for i in nogi_member_elems[:-1]:
 
 print(member_link_dict.keys())
 
-print(member_link_dict[member_name_en])
 # Calendar
 
 if (member_name_en in member_link_dict.keys()):
     member_url = member_link_dict[member_name_en]["link"]
     member_name = member_link_dict[member_name_en]["name_kn"]
+elif (member_name_ja in member_link_dict.keys()):
+    member_url = member_link_dict[member_name_ja]["link"]
+    member_name = member_link_dict[member_name_ja]["name_kn"]
 else:
     print("No member")
     sys.exit(1)
+print(f"url : {member_url}")
+print(f"name : {member_name}")
 
     
 ## webdriver
 driver_mem = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 driver_mem.implicitly_wait(10)
-driver_mem.set_window_size('1200', '1000')
+# driver_mem.set_window_size('1200', '1000')
 driver_mem.get(member_url)
-element = driver_mem.find_element_by_xpath("/html/body/div[1]/div[3]/div[1]/div[2]/div/p[1]")
-element.click()
+# element = driver_mem.find_element(By.CSS_SELECTOR, value=".js-lang-swich.ja")
+# print(element.is_displayed())
+# element.click()
 ## wait
 time.sleep(3)
 
