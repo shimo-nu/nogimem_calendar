@@ -48,7 +48,7 @@ def get_credentials(args = None):
 def ArgParser():
     parser = argparse.ArgumentParser(parents=[tools.argparser])
     
-    parser.add_argument('--start_time', type=str, required=True)
+    parser.add_argument('--start_time', type=str)
     parser.add_argument('--end_time', type=str)
     parser.add_argument('--title', type=str)
     parser.add_argument('--description', type=str)
@@ -56,20 +56,41 @@ def ArgParser():
     args = parser.parse_args()
     return args
     
-
-def add_schedule(calendarId, start_time, end_time, title, description, args = None):
+def get_schedule(calendarId, start_time, end_time, args=None):
+    print(calendarId)
     if (args is None):
         args = ArgParser()
     credentials = get_credentials(args)
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('calendar', 'v3', http=http)
 
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     start_date = datetime.datetime.strptime(start_time, '%Y-%m-%d-%H-%M')
     if (end_time is None):
         end_date = start_date + datetime.timedelta(hours=1)
     else:
         end_date = datetime.datetime.strptime(end_time, '%Y-%m-%d-%H-%M')
+    
+    events = service.events().list(calendarId=calendarId, timeMin=start_date.isoformat() + 'Z',  timeMax=end_date.isoformat() + 'Z').execute()
+    print(events)
+    for event in events['items']:
+        print(event['summary'])
+
+def add_schedule(calendarId, start_time, end_time, title, description, all_day = False , args = None):
+    print(calendarId)
+    if (args is None):
+        args = ArgParser()
+    credentials = get_credentials(args)
+    http = credentials.authorize(httplib2.Http())
+    service = discovery.build('calendar', 'v3', http=http)
+
+    data_format = "%Y-%m-%d-%H-%M"
+    if (all_day):
+        data_format = "%Y-%m-%d"
+    start_date = datetime.datetime.strptime(start_time, data_format)
+    if (end_time is None):
+        end_date = start_date + datetime.timedelta(hours=1)
+    else:
+        end_date = datetime.datetime.strptime(end_time, data_format)
     event = {
         'summary': title,
         'description': description,
@@ -92,7 +113,8 @@ def main():
     """
     
     args = ArgParser()
-    add_schedule(calendarId, args.start_time, args.end_time, args.title, args.description, args)
+    # add_schedule(calendarId, args.start_time, args.end_time, args.title, args.description, args)
+    get_schedule(calendarId, args.start_time, args.end_time)
 
 if __name__=='__main__':
     main()
