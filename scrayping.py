@@ -155,7 +155,7 @@ for content in member_calendar_dict[member_name]:
     ### All day
     elif (len(content["date"]) == 1):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
-        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], None, content["title"],  content["url"], all_day = True)
+        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][0], content["title"],  content["url"], all_day = True)
     elif (len(content["date"]) == 2):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
         ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][1], content["title"], content["url"])
