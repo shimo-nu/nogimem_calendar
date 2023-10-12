@@ -11,6 +11,12 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
 
 load_dotenv()
 
@@ -34,39 +40,32 @@ def ArgParser():
     args = parser.parse_args()
     return args
 
-def get_credentials(args = None):
-    """Gets valid user credentials from storage.
-
-    If nothing has been stored, or if the stored credentials are invalid,
-    the OAuth2 flow is completed to obtain the new credentials.
-
-    Returns:
-        Credentials, the obtained credential.
-    """
-    home_dir = os.path.expanduser('~')
-    credential_dir = os.path.join(home_dir, '.credentials')
-    if not os.path.exists(credential_dir):
-        os.makedirs(credential_dir)
-    credential_path = os.path.join(credential_dir,
-                                   'calendar-python-quickstart.json')
-
-    store = Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
-        flow.user_agent = APPLICATION_NAME
-        if args:
-            credentials = tools.run_flow(flow, store, args)
-        else: # Needed only for compatibility with Python 2.6
-            credentials = tools.run(flow, store)
-        print('Storing credentials to ' + credential_path)
-    return credentials
+def get_credentials(args=None):
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                CLIENT_SECRET_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    
+    return creds
 
 def create_service(args):
-    credentials = get_credentials(args)
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('calendar', 'v3', http=http)
+    creds = get_credentials(args)
+    service = build('calendar', 'v3', credentials=creds)
     return service
+
 
 def create_event_format(title, description, start_date, end_date, all_day):
 
@@ -103,6 +102,7 @@ def get_schedule(calendarId, start_time, end_time, all_day = False,  args=None):
     if (args is None):
         args = ArgParser()
 
+    # service = create_service(args)
     service = create_service(args)
     
     if (all_day):
@@ -126,6 +126,7 @@ def add_schedule(calendarId, start_time, end_time, title, description, all_day =
         args = ArgParser()
 
     service = create_service(args)
+    # service = create_service(args)
 
 
     if (all_day):
@@ -164,9 +165,9 @@ def main():
     if (args.end_time is None):
         args.end_time = args.start_time
     print(args.all_day)
-    add_schedule(calendarId, args.start_time, args.end_time, args.title, args.description, all_day = args.all_day, args = args)
+    # add_schedule(calendarId, args.start_time, args.end_time, args.title, args.description, all_day = args.all_day, args = args)
     # print("get_schedule")
-    # schedule = get_schedule(calendarId, args.start_time, args.end_time, all_day = args.all_day)
-    # print(schedule)
+    schedule = get_schedule(calendarId, args.start_time, args.end_time, all_day = args.all_day)
+    print(schedule)
 if __name__=='__main__':
     main()
