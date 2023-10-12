@@ -56,7 +56,7 @@ def get_credentials(args = None):
         flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
         flow.user_agent = APPLICATION_NAME
         if args:
-            credentials = tools.run_flow(flow, store, flags)
+            credentials = tools.run_flow(flow, store, args)
         else: # Needed only for compatibility with Python 2.6
             credentials = tools.run(flow, store)
         print('Storing credentials to ' + credential_path)
@@ -148,7 +148,7 @@ def add_schedule(calendarId, start_time, end_time, title, description, all_day =
         service.events().insert(calendarId = calendarId, body=event).execute()
     elif (event['summary'] != schedules[is_summary_of_schedules.index(True)]["summary"]):
         print("event title : {}".format(event['summary']))
-        print("schedule title : {}".format(schedules[is_summary_of_schedules.index()]["summary"]))
+        # print("schedule title : {}".format(schedules[is_summary_of_schedules.index()]["summary"]))
         service.events().insert(calendarId = calendarId, body=event).execute()
     else:
         print("Already exists schedule")
