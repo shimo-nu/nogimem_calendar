@@ -7,16 +7,13 @@ from dotenv import load_dotenv
 from dateutil import tz
 
 from apiclient import discovery
-from oauth2client import client
-from oauth2client import tools
-from oauth2client.file import Storage
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+import google.auth
 
 load_dotenv()
 
@@ -29,7 +26,7 @@ JST = tz.gettz('Asia/Tokyo')
 UTC = tz.gettz('UTC')
 
 def ArgParser():
-    parser = argparse.ArgumentParser(parents=[tools.argparser])
+    parser = argparse.ArgumentParser()
     
     parser.add_argument('--start_time', type=str)
     parser.add_argument('--end_time', type=str)
@@ -37,8 +34,15 @@ def ArgParser():
     parser.add_argument('--description', type=str)
     parser.add_argument('--all_day', type=bool, default=False)
 
+    parser.add_argument('--is_sa', type=bool, default=False)
+
     args = parser.parse_args()
     return args
+
+# Use service account
+def get_credentials_sa():
+    credentials, project = google.auth.default()
+    return credentials
 
 def get_credentials(args=None):
     creds = None
@@ -62,7 +66,11 @@ def get_credentials(args=None):
     return creds
 
 def create_service(args):
-    creds = get_credentials(args)
+    cred = None
+    if (args.is_sa):
+        creds = get_credentials_sa()
+    else:
+        creds = get_credentials(args)
     service = build('calendar', 'v3', credentials=creds)
     return service
 
@@ -155,12 +163,6 @@ def add_schedule(calendarId, start_time, end_time, title, description, all_day =
         print("Already exists schedule")
 
 def main():
-    """Shows basic usage of the Google Calendar API.
-
-    Creates a Google Calendar API service object and outputs a list of the next
-    10 events on the user's calendar.
-    """
-    
     args = ArgParser()
     if (args.end_time is None):
         args.end_time = args.start_time
