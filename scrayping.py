@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome import service as fs
 from selenium.common.exceptions import TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
+import chromedriver_binary
 import time
 import sys, os
 import re
@@ -20,7 +20,7 @@ import add_calendar as ac
 import datetime
 
 # Settings
-options = Options()
+options = webdriver.ChromeOptions()
 options.add_argument('--headless')
 options.add_argument('--disable-extensions')
 options.add_argument('--lang=ja-JP')
@@ -44,8 +44,9 @@ member_calendar_dict = {}
 # Member List
 
 ## webdriver
-# chrome_service = fs.Service(executable_path=
-nogi_driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+# chrome_service = fs.Service(executable_path="/usr/")
+
+nogi_driver = webdriver.Chrome(options=options)
 nogi_driver.implicitly_wait(20)
 nogi_driver.get(nogizaka_member_url)
 
@@ -53,6 +54,8 @@ nogi_driver.get(nogizaka_member_url)
 time.sleep(3)
 
 nogi_homepage_soup = BeautifulSoup(nogi_driver.page_source, 'html.parser')
+
+nogi_driver.quit()
 
 ## make member list
 nogi_member_elems = nogi_homepage_soup.select(member_profile_cssselector)
@@ -80,7 +83,7 @@ print(f"name : {member_name}")
 
     
 ## webdriver
-driver_mem = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+driver_mem = webdriver.Chrome(options=options)
 driver_mem.implicitly_wait(10)
 # driver_mem.set_window_size('1200', '1000')
 driver_mem.get(member_url)
@@ -91,6 +94,8 @@ driver_mem.get(member_url)
 time.sleep(3)
 
 member_article_soup = BeautifulSoup(driver_mem.page_source, 'html.parser')
+
+driver_mem.quit()
 
 calendar_dict = {}
 for i in member_article_soup.select(calendar_selector):

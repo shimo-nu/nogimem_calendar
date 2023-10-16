@@ -1,0 +1,10 @@
+requests
+bs4
+selenium
+webdriver_manager
+httplib2
+python-dateutil
+google-api-python-client
+google-auth-httplib2 
+google-auth-oauthlib
+chromedriver_binary==
