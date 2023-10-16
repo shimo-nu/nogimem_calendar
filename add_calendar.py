@@ -105,7 +105,7 @@ def create_event_format(title, description, start_date, end_date, all_day):
         }
     return event
 
-def get_schedule(calendarId, start_time, end_time, all_day = False,  args=None):
+def get_schedule(calendarId, start_time, end_time, args=None):
     
     if (args is None):
         args = ArgParser()
@@ -113,7 +113,7 @@ def get_schedule(calendarId, start_time, end_time, all_day = False,  args=None):
     # service = create_service(args)
     service = create_service(args)
     
-    if (all_day):
+    if (args.all_day):
         date_format = "%Y-%m-%d"
         start_date = datetime.datetime.strptime(start_time, date_format).astimezone(UTC).replace(tzinfo=None).isoformat() + 'Z'
         end_date = datetime.datetime.strptime(end_time, date_format).astimezone(UTC).replace(tzinfo=None) + datetime.timedelta(minutes=1)
@@ -128,16 +128,15 @@ def get_schedule(calendarId, start_time, end_time, all_day = False,  args=None):
     events = service.events().list(calendarId=calendarId, timeMin=start_date, timeMax=end_date).execute()
     return events["items"]
 
-def add_schedule(calendarId, start_time, end_time, title, description, all_day = False , args = None):
-
+def add_schedule(calendarId, start_time, end_time, title, description,  args = None):
     if (args is None):
         args = ArgParser()
 
     service = create_service(args)
     # service = create_service(args)
 
-
-    if (all_day):
+    
+    if (args.all_day):
         date_format = "%Y-%m-%d"
         start_date = datetime.datetime.strptime(start_time, date_format).date()
         end_date = datetime.datetime.strptime(end_time, date_format).date()
@@ -148,14 +147,15 @@ def add_schedule(calendarId, start_time, end_time, title, description, all_day =
 
         if (start_time == end_time):
             end_date += datetime.timedelta(hour=1)
-    event = create_event_format(title, description, start_date, end_date, all_day)
+    event = create_event_format(title, description, start_date, end_date, args.all_day)
 
-    schedules = get_schedule(calendarId, start_time, end_time, all_day)
+    schedules = get_schedule(calendarId, start_time, end_time, args)
     is_summary_of_schedules = ['summary' in schedule for schedule in schedules]
     if (not any(is_summary_of_schedules)):
         print(f"schedules : {schedules}")
         service.events().insert(calendarId = calendarId, body=event).execute()
-    elif (event['summary'] != schedules[is_summary_of_schedules.index(True)]["summary"]):
+    # elif (event['summary'] != schedules[is_summary_of_schedules.index(True)]["summary"]):
+    elif (event['summary'] not in [schedule['summary'] for schedule in schedules if 'summary' in schedule]):
         print("event title : {}".format(event['summary']))
         # print("schedule title : {}".format(schedules[is_summary_of_schedules.index()]["summary"]))
         service.events().insert(calendarId = calendarId, body=event).execute()

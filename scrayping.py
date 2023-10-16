@@ -18,6 +18,8 @@ load_dotenv()
 
 import add_calendar as ac
 import datetime
+from rich.console import Console
+console = Console()
 
 # Settings
 options = webdriver.ChromeOptions()
@@ -45,7 +47,7 @@ member_calendar_dict = {}
 
 ## webdriver
 # chrome_service = fs.Service(executable_path="/usr/")
-
+console.log("[Scrayping] Get HTML ...")
 nogi_driver = webdriver.Chrome(options=options)
 nogi_driver.implicitly_wait(20)
 nogi_driver.get(nogizaka_member_url)
@@ -58,6 +60,7 @@ nogi_homepage_soup = BeautifulSoup(nogi_driver.page_source, 'html.parser')
 nogi_driver.quit()
 
 ## make member list
+console.log("[Scrayping] Creating Member List...")
 nogi_member_elems = nogi_homepage_soup.select(member_profile_cssselector)
 for i in nogi_member_elems[:-1]:
     mem_name = i.find('p', class_="m--mem__name").get_text()
@@ -83,6 +86,7 @@ print(f"name : {member_name}")
 
     
 ## webdriver
+console.log("[Scrayping] Get the Calendar HTML of Member ...")
 driver_mem = webdriver.Chrome(options=options)
 driver_mem.implicitly_wait(10)
 # driver_mem.set_window_size('1200', '1000')
@@ -97,6 +101,7 @@ member_article_soup = BeautifulSoup(driver_mem.page_source, 'html.parser')
 
 driver_mem.quit()
 
+console.log("[Scrayping] Creating the Calendar list of the specific member ...")
 calendar_dict = {}
 for i in member_article_soup.select(calendar_selector):
     # contents = i.select('p', class_="m--scone__ttl")
@@ -154,15 +159,20 @@ for i in member_article_soup.select(calendar_selector):
 print(member_calendar_dict)
 
 ## Add Schedule
+console.log("[Add Calendar] Running ...")
 for content in member_calendar_dict[member_name]:
+    args = ac.ArgParser()
+    args.is_sa = True
     if ("date" not in content):
         sys.exit(1)
     ### All day
     elif (len(content["date"]) == 1):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
-        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][0], content["title"],  content["url"], all_day = True)
+        print("all day event")
+        args.all_day = True
+        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][0], content["title"],  content["url"], args)
     elif (len(content["date"]) == 2):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
-        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][1], content["title"], content["url"])
+        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][1], content["title"], content["url"], args)
 
 
