@@ -11,15 +11,25 @@ import chromedriver_binary
 import time
 import sys, os
 import re
-
+import datetime
+import argparse
 from dotenv import load_dotenv
-load_dotenv()
+from rich.console import Console
 
+load_dotenv()
+console = Console()
 
 import add_calendar as ac
-import datetime
-from rich.console import Console
-console = Console()
+
+# ArgParser
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--name', type=str, required=True)
+parser.add_argument('--en_name', type=str, default="")
+parser.add_argument('--is_sa', type=bool, default=False)
+
+args = parser.parse_args()
+
 
 # Settings
 options = webdriver.ChromeOptions()
@@ -28,8 +38,8 @@ options.add_argument('--disable-extensions')
 options.add_argument('--lang=ja-JP')
 
 ## Set member
-member_name_ja = "岩本 蓮加"
-member_name_en = "Renka Iwamoto"
+member_name_ja = args.name
+member_name_en = args.en_name
 
 # URL
 nogizaka_member_url = "https://www.nogizaka46.com/s/n46/search/artist?ima=0123"
@@ -161,18 +171,15 @@ print(member_calendar_dict)
 ## Add Schedule
 console.log("[Add Calendar] Running ...")
 for content in member_calendar_dict[member_name]:
-    args = ac.ArgParser()
-    args.is_sa = True
     if ("date" not in content):
         sys.exit(1)
     ### All day
     elif (len(content["date"]) == 1):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
         print("all day event")
-        args.all_day = True
-        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][0], content["title"],  content["url"], args)
+        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][0], content["title"],  content["url"], all_day=True, is_sa=args.is_sa)
     elif (len(content["date"]) == 2):
         print("add schedule which title is {}, date is {}".format(content["title"], content["date"]))
-        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][1], content["title"], content["url"], args)
+        ac.add_schedule(os.getenv("CALENDARID"), content["date"][0], content["date"][1], content["title"], content["url"], all_day=False, is_sa=args.is_sa)
 
 
