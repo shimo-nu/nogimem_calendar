@@ -137,7 +137,11 @@ for i in member_article_soup.select(calendar_selector):
                 start_time_str, end_time_str = article["duration"].split("〜")
 
                 start_hour, start_minute = map(int, start_time_str.split(":"))
-                end_hour, end_minute = map(int, end_time_str.split(":"))
+                if (end_time_str != ""):
+                    end_hour, end_minute = map(int, end_time_str.split(":"))
+                else:
+                    end_hour, end_minute = start_hour + 1, end_minute
+
                 day_offset_start = start_hour // 24
                 day_offset_end = end_hour // 24
                 start_hour %= 24
