@@ -44,7 +44,7 @@ def get_credentials_sa():
     credentials, project = google.auth.default()
     return credentials
 
-def get_credentials(args=None):
+def get_credentials():
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -65,12 +65,12 @@ def get_credentials(args=None):
     
     return creds
 
-def create_service(args):
+def create_service(is_sa = False):
     cred = None
-    if (args.is_sa):
+    if (is_sa):
         creds = get_credentials_sa()
     else:
-        creds = get_credentials(args)
+        creds = get_credentials()
     service = build('calendar', 'v3', credentials=creds)
     return service
 
@@ -105,15 +105,15 @@ def create_event_format(title, description, start_date, end_date, all_day):
         }
     return event
 
-def get_schedule(calendarId, start_time, end_time, args=None):
+def get_schedule(calendarId, start_time, end_time, all_day, is_sa=False):
     
-    if (args is None):
-        args = ArgParser()
+    # if (args is None):
+    #     args = ArgParser()
 
     # service = create_service(args)
-    service = create_service(args)
+    service = create_service(is_sa)
     
-    if (args.all_day):
+    if (all_day):
         date_format = "%Y-%m-%d"
         start_date = datetime.datetime.strptime(start_time, date_format).astimezone(UTC).replace(tzinfo=None).isoformat() + 'Z'
         end_date = datetime.datetime.strptime(end_time, date_format).astimezone(UTC).replace(tzinfo=None) + datetime.timedelta(minutes=1)
@@ -128,15 +128,13 @@ def get_schedule(calendarId, start_time, end_time, args=None):
     events = service.events().list(calendarId=calendarId, timeMin=start_date, timeMax=end_date).execute()
     return events["items"]
 
-def add_schedule(calendarId, start_time, end_time, title, description,  args = None):
-    if (args is None):
-        args = ArgParser()
+def add_schedule(calendarId, start_time, end_time, title, description,all_day, is_sa=False):
 
-    service = create_service(args)
+    service = create_service(is_sa)
     # service = create_service(args)
 
     
-    if (args.all_day):
+    if (all_day):
         date_format = "%Y-%m-%d"
         start_date = datetime.datetime.strptime(start_time, date_format).date()
         end_date = datetime.datetime.strptime(end_time, date_format).date()
@@ -147,9 +145,9 @@ def add_schedule(calendarId, start_time, end_time, title, description,  args = N
 
         if (start_time == end_time):
             end_date += datetime.timedelta(hour=1)
-    event = create_event_format(title, description, start_date, end_date, args.all_day)
+    event = create_event_format(title, description, start_date, end_date, all_day)
 
-    schedules = get_schedule(calendarId, start_time, end_time, args)
+    schedules = get_schedule(calendarId, start_time, end_time, all_day, is_sa)
     is_summary_of_schedules = ['summary' in schedule for schedule in schedules]
     if (not any(is_summary_of_schedules)):
         print(f"schedules : {schedules}")
