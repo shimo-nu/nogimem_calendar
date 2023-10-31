@@ -109,7 +109,7 @@ time.sleep(3)
 
 member_article_soup = BeautifulSoup(driver_mem.page_source, 'html.parser')
 
-driver_mem.quit()
+# driver_mem.quit()
 
 console.log("[Scrayping] Creating the Calendar list of the specific member ...")
 calendar_dict = {}
