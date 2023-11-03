@@ -1,4 +1,8 @@
 #!/bin/bash
 
+export GOOGLE_APPLICATION_CREDENTIALS=[credential path]
+
 cd $HOME/nogimem_calendar
-python run.py --name "岩本 蓮加"  --is_sa True
+
+
+[(python path) or python] run.py --name [membername] 
