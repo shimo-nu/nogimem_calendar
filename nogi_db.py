@@ -1,36 +1,60 @@
 import sqlite3
+from functools import wraps
 
+def with_db_connection(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        db_connect = sqlite3.connect(self.dbname)
+        try:
+            return func(self, db_connect, *args, **kwargs)
+        finally:
+            db_connect.close()
+    return wrapper
 
 class NogiDB:
     def __init__(self, dbname):
         self.dbname = dbname
         
-        
-    def create_table(self):
+    def __enter__(self):
         db_connect = sqlite3.connect(self.dbname)
+        self.db_connect = db_connect
+        return self
+    
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.db_connect.close()
+        
+    @with_db_connection
+    def create_table(self, db_connect):
         
         self.create_user_table(db_connect)
         self.create_user_info(db_connect)
         self.create_user_calendar(db_connect)
         
-        db_connect.close()
-        
-    def insert_data(self, data, data_type):
-        db_connect = sqlite3.connect(self.dbname)
+    @with_db_connection
+    def insert_data(self, db_connect, data, data_type):
         
         if (data_type == "user"):
             for user in data:
                 self.insert_user(db_connect, user)
+
+  
         
-        db_connect.close()
         
         
     @staticmethod
     def insert_user(db_connect, user_data):
         """
         Userテーブルにデータを挿入します。
-        user_data: (ID, Name) のタプル
+        user_data: (Name, URL) のタプル
+        IDはAutoIncrement
         """
+        
+         # まずはユーザー名が既に存在するか確認
+        cur = db_connect.cursor()
+        cur.execute("SELECT * FROM User WHERE Name = ?", (user_data[0],))
+        if cur.fetchone():
+            return None
+
         sql = ''' INSERT INTO User(Name, Url)
                 VALUES(?, ?) '''
         cur = db_connect.cursor()
@@ -43,7 +67,7 @@ class NogiDB:
         """
         UserInfoテーブルにデータを挿入します。
         user_info_data: (ID, Name, Name1, Name2) のタプル
-        'CREATE TABLE user(id INTEGER, name STRING, name_kn, birthday STRING, blood STRING, sign STRING)'
+        'CREATE TABLE user_info(id INTEGER, name STRING, name_kn, birthday STRING, blood STRING, sign STRING)'
 
         """
         sql = ''' INSERT INTO UserInfo(ID, Name, Name_kn, BirthDay, Blood, Sign)
@@ -54,49 +78,72 @@ class NogiDB:
         return cur.lastrowid
     
     @staticmethod
-    def insert_user_calendar(self, db_connect, user_calendar_data):
+    def insert_user_calendar(db_connect, user_calendar_data):
         """
         UserCalendarテーブルにデータを挿入します。
-        user_calendar_data: (ID, Date, Start Time, End Time, Category, Title) のタプル
+        user_calendar_data: (ID, Date, Start, End, Category, Title) のタプル
+        同じTitleとDateのデータが存在しない場合のみ挿入します。
         """
-        sql = ''' INSERT INTO UserCalendar(ID, Date, StartTime, EndTime, Category, Title)
-                VALUES(?, ?, ?, ?, ?, ?) '''
+        # 既に同じTitleとDateのデータが存在するか確認
+        check_sql = ''' SELECT COUNT(*) FROM user_calendar WHERE Date = ? AND Title = ? '''
         cur = db_connect.cursor()
-        cur.execute(sql, user_calendar_data)
-        db_connect.commit()
-        return cur.lastrowid
+        cur.execute(check_sql, (user_calendar_data[1], user_calendar_data[5]))
+        exists = cur.fetchone()[0] > 0
+
+        if not exists:
+            # データが存在しない場合のみ挿入
+            insert_sql = ''' INSERT INTO user_calendar(ID, Date, Start, End, Category, Title)
+                            VALUES(?, ?, ?, ?, ?, ?) '''
+            cur.execute(insert_sql, user_calendar_data)
+            db_connect.commit()
+            return cur.lastrowid
+        else:
+            # 既に存在する場合は何もしない
+            return None
+
     
-    def get_id(self, db_connect, name):
+    @staticmethod
+    def get_id(db_connect, name):
         """
         指定された名前に基づいてユーザーのIDを取得します。
         name: ユーザーの名前
         """
-        sql = ''' SELECT ID FROM User WHERE Name = ? '''
+        sql = ''' SELECT ID FROM user WHERE Name = ? '''
         cur = db_connect.cursor()
         cur.execute(sql, (name,))
         row = cur.fetchone()
         if row:
             return row[0]
         return None
-  
-    def get_user(self, db_connect, user_id):
+    
+    @staticmethod
+    def get_user(db_connect, user_id):
         """
         指定されたIDに基づいてUserテーブルからユーザーを取得します。
         user_id: ユーザーのID
         """
-        sql = ''' SELECT * FROM User WHERE ID = ? '''
+        sql = ''' SELECT * FROM user WHERE ID = ? '''
         cur = db_connect.cursor()
         cur.execute(sql, (user_id,))
         rows = cur.fetchall()
         return rows
 
+    @staticmethod
+    def get_all_user(db_connect):
         
-    def get_user_info(self, db_connect, user_id):
+        sql = ''' SELECT * FROM user '''
+        cur = db_connect.cursor()
+        cur.execute(sql, ())
+        rows = cur.fetchall()
+        return rows
+
+    @staticmethod
+    def get_user_info(db_connect, user_id):
         """
         指定されたIDに基づいてUserInfoテーブルからユーザー情報を取得します。
         user_id: ユーザーのID
         """
-        sql = ''' SELECT * FROM UserInfo WHERE ID = ? '''
+        sql = ''' SELECT * FROM user_info WHERE ID = ? '''
         cur = db_connect.cursor()
         cur.execute(sql, (user_id,))
         rows = cur.fetchall()
@@ -107,7 +154,7 @@ class NogiDB:
         指定されたIDに基づいてUserInfoテーブルからユーザー情報を取得します。
         user_id: ユーザーのID
         """
-        sql = ''' SELECT * FROM UserInfo WHERE ID = ? '''
+        sql = ''' SELECT * FROM user_calendar WHERE ID = ? '''
         cur = db_connect.cursor()
         cur.execute(sql, (user_id,))
         rows = cur.fetchall()
@@ -140,7 +187,7 @@ class NogiDB:
         cur = db_con.cursor()
         
         cur.execute(
-            'CREATE TABLE IF NOT EXISTS user_calendar(id INTEGER, start DATE, end DATE, category STRING, title STRING)'
+            'CREATE TABLE IF NOT EXISTS user_calendar(id INTEGER, date DATE, start DATE, end DATE, category STRING, title STRING)'
         )
 
         db_con.commit()
